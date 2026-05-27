@@ -21,6 +21,19 @@ describe("site-context", () => {
     expect(hosts).toEqual(["staging.example.com"]);
   });
 
+  it("resolves allowed_hosts from page url alone (Angie default)", () => {
+    const hosts = resolveAllowedHosts({ url: "https://shop.example.com/product/" });
+    expect(hosts).toEqual(["shop.example.com"]);
+  });
+
+  it("parse succeeds with only url (no site_url injection)", () => {
+    const parsed = parseLayoutScanInput({ url: "https://example.com/about/" });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.allowed_hosts).toEqual(["example.com"]);
+    }
+  });
+
   it("applySiteContext injects allowed_hosts for layout_scan parse", () => {
     const parsed = parseLayoutScanInput(
       applySiteContext({

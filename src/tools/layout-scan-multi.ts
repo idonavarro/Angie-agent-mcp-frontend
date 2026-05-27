@@ -26,7 +26,7 @@ export const layoutScanMultiInputSchema = z
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message:
-          "allowed_hosts is required, or enable Site-scoped tools in Angie so site_url is injected",
+          "allowed_hosts could not be resolved — provide allowed_hosts, site_url, or a valid page url",
         path: ["allowed_hosts"],
       });
     }

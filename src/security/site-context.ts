@@ -1,13 +1,24 @@
 /** Angie site-scoped tool injection field names (when "Site-scoped tools" is ON). */
 const SITE_URL_FIELDS = [
   "site_url",
+  "siteUrl",
   "wordpress_site_url",
+  "wordpressSiteUrl",
   "home_url",
+  "homeUrl",
+  "blog_url",
+  "website_url",
   "angie_site_url",
   "_angie_site_url",
 ] as const;
 
-const SITE_HOST_FIELDS = ["site_host", "wordpress_site_host", "angie_site_host"] as const;
+const SITE_HOST_FIELDS = [
+  "site_host",
+  "siteHost",
+  "wordpress_site_host",
+  "wordpressSiteHost",
+  "angie_site_host",
+] as const;
 
 function hostnameFromUrl(value: string): string | null {
   try {
@@ -39,6 +50,12 @@ export function resolveAllowedHosts(args: Record<string, unknown>): string[] | n
       const host = hostnameFromUrl(value);
       if (host) return [host];
     }
+  }
+
+  // Angie often sends only `url` (page permalink) without separate site_url injection.
+  if (typeof args.url === "string" && args.url.length > 0) {
+    const host = hostnameFromUrl(args.url);
+    if (host) return [host];
   }
 
   return null;
