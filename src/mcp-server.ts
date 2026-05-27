@@ -16,7 +16,7 @@ import type { AllowlistOptions } from "./security/allowlist.js";
 import { safeUrlForLog } from "./security/allowlist.js";
 
 export const MCP_NAME = "angie-browser-layout";
-export const MCP_VERSION = "1.0.0";
+export const MCP_VERSION = "1.0.1";
 export const MCP_DESCRIPTION =
   "Live DOM layout diagnostics for Elementor CX: horizontal overflow, Elementor element offenders, !important CSS detection";
 

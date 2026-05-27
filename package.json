@@ -1,6 +1,6 @@
 {
   "name": "angie-browser-layout-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Live DOM layout diagnostics for Elementor CX: horizontal overflow, Elementor element offenders, !important CSS detection",
   "type": "module",
   "main": "dist/index.js",
