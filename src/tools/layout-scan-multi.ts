@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { runLayoutScan } from "../browser/run-scan.js";
+import type { ScreenshotMode } from "../browser/screenshot.js";
 import { applySiteContext, resolveAllowedHosts } from "../security/site-context.js";
 import type { MultiViewportResult, LayoutScanResult } from "../scripts/layout-evaluate.js";
 import type { AllowlistOptions } from "../security/allowlist.js";
@@ -18,6 +19,11 @@ export const layoutScanMultiInputSchema = z
     url: z.string().url(),
     allowed_hosts: z.array(z.string().min(1)).min(1).optional(),
     suspect_element_ids: z.array(z.string()).optional().default([]),
+    include_screenshot: z.boolean().optional().default(false),
+    screenshot_mode: z
+      .enum(["viewport", "full_page", "top_offender"])
+      .optional()
+      .default("viewport"),
     ...siteContextFields,
   })
   .superRefine((data, ctx) => {
@@ -35,6 +41,8 @@ export const layoutScanMultiInputSchema = z
     url: data.url,
     allowed_hosts: resolveAllowedHosts(data as Record<string, unknown>)!,
     suspect_element_ids: data.suspect_element_ids,
+    include_screenshot: data.include_screenshot,
+    screenshot_mode: data.screenshot_mode as ScreenshotMode,
   }));
 
 export type LayoutScanMultiInput = z.infer<typeof layoutScanMultiInputSchema>;
@@ -77,6 +85,8 @@ export async function executeLayoutScanMultiViewport(
       allowedHosts: input.allowed_hosts,
       suspectElementIds: input.suspect_element_ids,
       allowlistOptions,
+      includeScreenshot: input.include_screenshot,
+      screenshotMode: input.screenshot_mode,
     });
     scans.push(result);
   }

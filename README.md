@@ -123,6 +123,28 @@ With Site-scoped tools **OFF**, the agent must pass `allowed_hosts` explicitly o
 
 **Output:** JSON with `has_horizontal_scroll`, `offenders`, `elementor_offenders`, `important_rules`, etc.
 
+**Screenshots (v1.2):** Set `include_screenshot: true` to attach a PNG. The MCP response includes:
+- `text` — JSON (with `screenshot_meta`, not the raw base64)
+- `image` — base64 PNG for Angie/clients that render MCP images
+
+| Field | Default | Values |
+|-------|---------|--------|
+| `include_screenshot` | `false` | `true` to capture |
+| `screenshot_mode` | `viewport` | `viewport`, `full_page`, `top_offender` (Elementor `data-id` clip) |
+
+Example:
+
+```json
+{
+  "url": "https://your-site.com/page/",
+  "viewport_width": 375,
+  "include_screenshot": true,
+  "screenshot_mode": "viewport"
+}
+```
+
+> Screenshots are returned as MCP `image` content (base64). External image hosts are not used — customer page captures stay on your server.
+
 ### Tool: `layout_scan_multi_viewport`
 
 Same as `layout_scan` except viewport is fixed to 375/768/1280 presets. Returns `scans[]`, `first_breakpoint_with_scroll`, and `summary`.

@@ -1,3 +1,5 @@
+import type { ScanScreenshot } from "../browser/screenshot.js";
+
 /**
  * Browser-side layout evaluation script.
  * Embedded as a string for page.evaluate().
@@ -109,6 +111,16 @@ export interface LayoutEvaluateResult {
   elementor_offenders: LayoutOffender[];
 }
 
+export interface ScreenshotMeta {
+  mimeType: "image/png";
+  mode: string;
+  width: number;
+  height: number;
+  bytes: number;
+  included_in_response: boolean;
+  capture_failed?: boolean;
+}
+
 export interface LayoutScanResult {
   url: string;
   viewport: { width: number; height: number };
@@ -122,6 +134,9 @@ export interface LayoutScanResult {
   duration_ms: number;
   http_status: number | null;
   error?: string;
+  /** Full image payload for MCP handler; omitted from JSON text block */
+  screenshot?: ScanScreenshot;
+  screenshot_meta?: ScreenshotMeta;
 }
 
 export interface MultiViewportResult {

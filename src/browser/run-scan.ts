@@ -11,6 +11,7 @@ import {
   safeUrlForLog,
   type AllowlistOptions,
 } from "../security/allowlist.js";
+import { captureScreenshot, type ScreenshotMode } from "./screenshot.js";
 
 export interface ScanOptions {
   url: string;
@@ -21,6 +22,8 @@ export interface ScanOptions {
   allowlistOptions: AllowlistOptions;
   navigationTimeoutMs?: number;
   totalTimeoutMs?: number;
+  includeScreenshot?: boolean;
+  screenshotMode?: ScreenshotMode;
 }
 
 const NAVIGATION_TIMEOUT_MS = 30_000;
@@ -37,6 +40,8 @@ export async function runLayoutScan(options: ScanOptions): Promise<LayoutScanRes
     allowlistOptions,
     navigationTimeoutMs = NAVIGATION_TIMEOUT_MS,
     totalTimeoutMs = TOTAL_TIMEOUT_MS,
+    includeScreenshot = false,
+    screenshotMode = "viewport",
   } = options;
 
   const urlValidation = validateUrl(url, allowedHosts, allowlistOptions);
@@ -132,6 +137,37 @@ export async function runLayoutScan(options: ScanOptions): Promise<LayoutScanRes
         (o): o is LayoutOffender & { data_id: string } =>
           o.data_id !== null && suspectSet.has(o.data_id)
       );
+    }
+
+    if (includeScreenshot) {
+      const topOffender =
+        evalResult.elementor_offenders[0] ?? evalResult.offenders[0] ?? null;
+      const mode =
+        screenshotMode === "top_offender" && !topOffender?.data_id
+          ? "viewport"
+          : screenshotMode;
+      const screenshot = await captureScreenshot(page, mode, topOffender);
+      if (screenshot) {
+        result.screenshot = screenshot;
+        result.screenshot_meta = {
+          mimeType: screenshot.mimeType,
+          mode: screenshot.mode,
+          width: screenshot.width,
+          height: screenshot.height,
+          bytes: screenshot.bytes,
+          included_in_response: true,
+        };
+      } else {
+        result.screenshot_meta = {
+          mimeType: "image/png",
+          mode,
+          width: viewportWidth,
+          height: viewportHeight,
+          bytes: 0,
+          included_in_response: false,
+          capture_failed: true,
+        };
+      }
     }
 
     return result;

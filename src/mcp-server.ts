@@ -14,9 +14,13 @@ import {
 } from "./tools/layout-scan-multi.js";
 import type { AllowlistOptions } from "./security/allowlist.js";
 import { safeUrlForLog } from "./security/allowlist.js";
+import {
+  buildLayoutScanToolContent,
+  buildMultiViewportToolContent,
+} from "./mcp/tool-result.js";
 
 export const MCP_NAME = "angie-browser-layout";
-export const MCP_VERSION = "1.0.1";
+export const MCP_VERSION = "1.2.0";
 export const MCP_DESCRIPTION =
   "Live DOM layout diagnostics for Elementor CX: horizontal overflow, Elementor element offenders, !important CSS detection";
 
@@ -45,7 +49,7 @@ export function createMcpServer(deps: McpServerDeps): McpServer {
     "layout_scan",
     {
       description:
-        "Scan a public page URL at a given viewport. Detect horizontal overflow, offending DOM nodes (prioritize Elementor data-id), and active !important CSS rules.",
+        "Scan a public page URL at a given viewport. Detect horizontal overflow, Elementor data-id offenders, and !important CSS. Set include_screenshot:true to return a PNG (base64 image in MCP response).",
       inputSchema: layoutScanInputSchema as any,
     },
     async (rawArgs: Record<string, unknown>) => {
@@ -74,9 +78,7 @@ export function createMcpServer(deps: McpServerDeps): McpServer {
           },
           "layout_scan done"
         );
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
-        };
+        return buildLayoutScanToolContent(result);
       } catch (err) {
         logger.error({ err }, "layout_scan failed");
         return {
@@ -96,7 +98,7 @@ export function createMcpServer(deps: McpServerDeps): McpServer {
     "layout_scan_multi_viewport",
     {
       description:
-        "Run layout_scan at widths 375, 768, and 1280px. Returns all results plus the first breakpoint with horizontal scroll.",
+        "Run layout_scan at 375, 768, and 1280px. Optional include_screenshot returns PNG per viewport in MCP response.",
       inputSchema: layoutScanMultiInputSchema as any,
     },
     async (rawArgs: Record<string, unknown>) => {
@@ -115,9 +117,7 @@ export function createMcpServer(deps: McpServerDeps): McpServer {
         logger.info({ url: safeUrlForLog(urlObj) }, "layout_scan_multi_viewport start");
         const result = await executeLayoutScanMultiViewport(args, allowlistOptions);
         logger.info({ url: safeUrlForLog(urlObj), summary: result.summary }, "layout_scan_multi_viewport done");
-        return {
-          content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
-        };
+        return buildMultiViewportToolContent(result);
       } catch (err) {
         logger.error({ err }, "layout_scan_multi_viewport failed");
         return {
