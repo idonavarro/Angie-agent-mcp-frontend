@@ -119,6 +119,9 @@ export interface ScreenshotMeta {
   bytes: number;
   included_in_response: boolean;
   capture_failed?: boolean;
+  /** Public URL when uploaded to agent-img.com */
+  url?: string;
+  upload_failed?: string;
 }
 
 export interface LayoutScanResult {

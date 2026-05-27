@@ -17,6 +17,7 @@ function stripScreenshotForJson(result: LayoutScanResult): Record<string, unknow
       height: screenshot.height,
       bytes: screenshot.bytes,
       included_in_response: true,
+      url: screenshot.url,
     },
   };
 }
@@ -43,7 +44,14 @@ export function buildMultiViewportToolContent(result: MultiViewportResult): {
   content: McpContentBlock[];
 } {
   const scans = result.scans.map((scan) => stripScreenshotForJson(scan));
-  const payload = { ...result, scans };
+  const screenshot_urls = result.scans
+    .map((scan) => scan.screenshot?.url)
+    .filter((url): url is string => Boolean(url));
+  const payload = {
+    ...result,
+    scans,
+    ...(screenshot_urls.length > 0 ? { screenshot_urls } : {}),
+  };
 
   const content: McpContentBlock[] = [
     { type: "text", text: JSON.stringify(payload, null, 2) },

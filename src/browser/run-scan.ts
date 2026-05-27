@@ -11,6 +11,7 @@ import {
   safeUrlForLog,
   type AllowlistOptions,
 } from "../security/allowlist.js";
+import { uploadScreenshot } from "./image-upload.js";
 import { captureScreenshot, type ScreenshotMode } from "./screenshot.js";
 
 export interface ScanOptions {
@@ -28,6 +29,33 @@ export interface ScanOptions {
 
 const NAVIGATION_TIMEOUT_MS = 30_000;
 const TOTAL_TIMEOUT_MS = 45_000;
+
+async function attachScreenshotToResult(
+  result: LayoutScanResult,
+  screenshot: NonNullable<LayoutScanResult["screenshot"]>,
+  viewportWidth: number
+): Promise<void> {
+  const upload = await uploadScreenshot(
+    Buffer.from(screenshot.base64, "base64"),
+    `layout-scan-${viewportWidth}-${screenshot.mode}.png`
+  );
+
+  if (upload.ok) {
+    screenshot.url = upload.url;
+  }
+
+  result.screenshot = screenshot;
+  result.screenshot_meta = {
+    mimeType: screenshot.mimeType,
+    mode: screenshot.mode,
+    width: screenshot.width,
+    height: screenshot.height,
+    bytes: screenshot.bytes,
+    included_in_response: true,
+    url: upload.ok ? upload.url : undefined,
+    upload_failed: upload.ok ? undefined : upload.error,
+  };
+}
 
 export async function runLayoutScan(options: ScanOptions): Promise<LayoutScanResult> {
   const start = Date.now();
@@ -148,15 +176,7 @@ export async function runLayoutScan(options: ScanOptions): Promise<LayoutScanRes
           : screenshotMode;
       const screenshot = await captureScreenshot(page, mode, topOffender);
       if (screenshot) {
-        result.screenshot = screenshot;
-        result.screenshot_meta = {
-          mimeType: screenshot.mimeType,
-          mode: screenshot.mode,
-          width: screenshot.width,
-          height: screenshot.height,
-          bytes: screenshot.bytes,
-          included_in_response: true,
-        };
+        await attachScreenshotToResult(result, screenshot, viewportWidth);
       } else {
         result.screenshot_meta = {
           mimeType: "image/png",

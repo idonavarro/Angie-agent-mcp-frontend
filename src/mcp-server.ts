@@ -18,9 +18,10 @@ import {
   buildLayoutScanToolContent,
   buildMultiViewportToolContent,
 } from "./mcp/tool-result.js";
+import { isMcpTrafficLogEnabled, sanitizeForLog } from "./mcp/traffic-log.js";
 
 export const MCP_NAME = "angie-browser-layout";
-export const MCP_VERSION = "1.2.0";
+export const MCP_VERSION = "1.3.0";
 export const MCP_DESCRIPTION =
   "Live DOM layout diagnostics for Elementor CX: horizontal overflow, Elementor element offenders, !important CSS detection";
 
@@ -49,7 +50,7 @@ export function createMcpServer(deps: McpServerDeps): McpServer {
     "layout_scan",
     {
       description:
-        "Scan a public page URL at a given viewport. Detect horizontal overflow, Elementor data-id offenders, and !important CSS. Set include_screenshot:true to return a PNG (base64 image in MCP response).",
+        "Scan a public page URL at a given viewport. Detect horizontal overflow, Elementor data-id offenders, and !important CSS. Set include_screenshot:true to return a PNG (base64 image in MCP response; uploaded URL in screenshot_meta when AGENT_IMG_TOKEN is set).",
       inputSchema: layoutScanInputSchema as any,
     },
     async (rawArgs: Record<string, unknown>) => {
@@ -65,11 +66,33 @@ export function createMcpServer(deps: McpServerDeps): McpServer {
 
       try {
         const urlObj = new URL(args.url);
+        if (isMcpTrafficLogEnabled()) {
+          logger.info(
+            { tool: "layout_scan", args: sanitizeForLog(args) },
+            "MCP tool call"
+          );
+        }
         logger.info(
           { url: safeUrlForLog(urlObj), viewport: args.viewport_width },
           "layout_scan start"
         );
         const result = await executeLayoutScan(args, allowlistOptions);
+        const toolContent = buildLayoutScanToolContent(result);
+        if (isMcpTrafficLogEnabled()) {
+          logger.info(
+            {
+              tool: "layout_scan",
+              result: sanitizeForLog({
+                ...result,
+                screenshot: result.screenshot
+                  ? { ...result.screenshot, base64: `[${result.screenshot.base64.length} chars]` }
+                  : undefined,
+              }),
+              contentBlocks: toolContent.content.map((c) => c.type),
+            },
+            "MCP tool result"
+          );
+        }
         logger.info(
           {
             url: safeUrlForLog(urlObj),
@@ -78,7 +101,7 @@ export function createMcpServer(deps: McpServerDeps): McpServer {
           },
           "layout_scan done"
         );
-        return buildLayoutScanToolContent(result);
+        return toolContent;
       } catch (err) {
         logger.error({ err }, "layout_scan failed");
         return {
@@ -98,7 +121,7 @@ export function createMcpServer(deps: McpServerDeps): McpServer {
     "layout_scan_multi_viewport",
     {
       description:
-        "Run layout_scan at 375, 768, and 1280px. Optional include_screenshot returns PNG per viewport in MCP response.",
+        "Run layout_scan at 375, 768, and 1280px. Optional include_screenshot returns PNG per viewport in MCP response (uploaded URLs in screenshot_urls when AGENT_IMG_TOKEN is set).",
       inputSchema: layoutScanMultiInputSchema as any,
     },
     async (rawArgs: Record<string, unknown>) => {
@@ -114,10 +137,27 @@ export function createMcpServer(deps: McpServerDeps): McpServer {
 
       try {
         const urlObj = new URL(args.url);
+        if (isMcpTrafficLogEnabled()) {
+          logger.info(
+            { tool: "layout_scan_multi_viewport", args: sanitizeForLog(args) },
+            "MCP tool call"
+          );
+        }
         logger.info({ url: safeUrlForLog(urlObj) }, "layout_scan_multi_viewport start");
         const result = await executeLayoutScanMultiViewport(args, allowlistOptions);
-        logger.info({ url: safeUrlForLog(urlObj), summary: result.summary }, "layout_scan_multi_viewport done");
-        return buildMultiViewportToolContent(result);
+        const toolContent = buildMultiViewportToolContent(result);
+        if (isMcpTrafficLogEnabled()) {
+          logger.info(
+            {
+              tool: "layout_scan_multi_viewport",
+              summary: result.summary,
+              contentBlocks: toolContent.content.length,
+            },
+            "MCP tool result"
+          );
+        }
+        logger.info({ url: safeUrlForLog(urlObj) }, "layout_scan_multi_viewport done");
+        return toolContent;
       } catch (err) {
         logger.error({ err }, "layout_scan_multi_viewport failed");
         return {

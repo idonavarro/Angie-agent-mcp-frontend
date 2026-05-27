@@ -10,6 +10,8 @@ export interface ScanScreenshot {
   height: number;
   mode: ScreenshotMode;
   bytes: number;
+  /** Public URL when uploaded to agent-img.com */
+  url?: string;
 }
 
 const MAX_SCREENSHOT_BYTES = 3 * 1024 * 1024;

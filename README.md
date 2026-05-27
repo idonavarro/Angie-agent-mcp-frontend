@@ -68,6 +68,10 @@ ALLOWED_HOSTS=your-site.com \
 npm run smoke
 ```
 
+## Angie agent instructions
+
+Copy the full agent system prompt from [docs/agent-instructions.md](docs/agent-instructions.md) into your **Frontend Troubleshooting Expert** agent in Angie. It covers Phase A (REST) + Phase B (MCP tools + screenshots).
+
 ## Angie MCP registration (Add MCP Server UI)
 
 In Angie → **Add MCP Server**, fill the form exactly as follows:
@@ -143,7 +147,7 @@ Example:
 }
 ```
 
-> Screenshots are returned as MCP `image` content (base64). External image hosts are not used — customer page captures stay on your server.
+> Screenshots are returned as MCP `image` content (base64). When `AGENT_IMG_TOKEN` is set, each capture is also uploaded to [agent-img.com](https://agent-img.com) and the public URL is included in `screenshot_meta.url` (multi-viewport: `screenshot_urls[]`).
 
 ### Tool: `layout_scan_multi_viewport`
 
@@ -161,7 +165,19 @@ Same as `layout_scan` except viewport is fixed to 375/768/1280 presets. Returns 
 | `ALLOW_INSECURE_HTTP` | `false` | Allow `http://` URLs in tool calls |
 | `ALLOW_PRIVATE_URLS` | `false` | Allow localhost/private IP targets |
 | `NODE_ENV` | `production` | Node environment |
-| `LOG_LEVEL` | `info` | Pino log level |
+| `LOG_LEVEL` | `info` | Pino log level; `debug` also enables MCP traffic logs |
+| `MCP_LOG_TRAFFIC` | `false` | `true` = log every MCP request/response body (tokens/base64 redacted) |
+| `AGENT_IMG_TOKEN` | — | Optional. Bearer token (`aih_…`) to upload screenshots to agent-img.com |
+
+### MCP traffic logging
+
+Set `MCP_LOG_TRAFFIC=true` or `LOG_LEVEL=debug` to log all `/mcp` traffic:
+
+- `direction: "in"` — method, headers, session, JSON body
+- `direction: "out"` — status, SSE/JSON response (base64 images omitted)
+- `MCP tool call` / `MCP tool result` — per-tool args and scan summary
+
+View on Fly: `fly logs -a angie-agent-mcp-frontend`
 
 ## HTTP routes
 

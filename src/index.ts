@@ -10,6 +10,11 @@ import {
 } from "./mcp-server.js";
 import { createAuthHook, type AuthMode } from "./security/auth.js";
 import { createRateLimitHook, rateLimiter } from "./security/rate-limit.js";
+import {
+  isMcpTrafficLogEnabled,
+  logMcpInbound,
+  wrapResponseForTrafficLog,
+} from "./mcp/traffic-log.js";
 
 const PORT = parseInt(process.env.PORT ?? "8080", 10);
 const MCP_AUTH_TOKEN = process.env.MCP_AUTH_TOKEN ?? "";
@@ -96,6 +101,27 @@ async function main(): Promise<void> {
     request: import("fastify").FastifyRequest,
     reply: import("fastify").FastifyReply
   ): Promise<void> {
+    const mcpLog = isMcpTrafficLogEnabled();
+    const requestId = randomUUID().slice(0, 8);
+    const sessionHeader = request.headers["mcp-session-id"] as string | undefined;
+
+    if (mcpLog) {
+      logMcpInbound(logger, {
+        requestId,
+        method: request.method,
+        path: request.url,
+        query: request.query,
+        headers: request.headers as Record<string, unknown>,
+        body: request.body,
+        sessionId: sessionHeader,
+      });
+      wrapResponseForTrafficLog(reply.raw, logger, {
+        requestId,
+        method: request.method,
+        sessionId: sessionHeader,
+      });
+    }
+
     await authHook(request, reply);
     if (reply.sent) return;
 
@@ -103,7 +129,7 @@ async function main(): Promise<void> {
     if (reply.sent) return;
 
     try {
-      const sessionId = request.headers["mcp-session-id"] as string | undefined;
+      const sessionId = sessionHeader;
       let transport: StreamableHTTPServerTransport;
 
       if (sessionId && transports.has(sessionId)) {
@@ -164,7 +190,15 @@ async function main(): Promise<void> {
   }
 
   await app.listen({ port: PORT, host: "0.0.0.0" });
-  logger.info({ port: PORT, mcpPaths }, "angie-browser-layout-mcp listening");
+  logger.info(
+    {
+      port: PORT,
+      mcpPaths,
+      mcpTrafficLog: isMcpTrafficLogEnabled(),
+      logLevel: process.env.LOG_LEVEL ?? "info",
+    },
+    "angie-browser-layout-mcp listening"
+  );
 }
 
 main().catch((err) => {
